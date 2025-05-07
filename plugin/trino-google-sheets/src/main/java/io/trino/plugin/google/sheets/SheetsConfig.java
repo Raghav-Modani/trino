@@ -32,6 +32,8 @@ public class SheetsConfig
     private Optional<String> credentialsFilePath = Optional.empty();
     private Optional<String> credentialsKey = Optional.empty();
     private Optional<String> metadataSheetId = Optional.empty();
+    private Optional<String> delegatedUserEmail = Optional.empty();
+
     private int sheetsDataMaxCacheSize = 1000;
     private Duration sheetsDataExpireAfterWrite = new Duration(5, TimeUnit.MINUTES);
     // 20s is the default timeout of com.google.api.client.http.HttpRequest
@@ -87,6 +89,21 @@ public class SheetsConfig
     public SheetsConfig setMetadataSheetId(String metadataSheetId)
     {
         this.metadataSheetId = Optional.ofNullable(metadataSheetId);
+        return this;
+    }
+
+    @NotNull
+    public Optional<String> getDelegatedUserEmail()
+    {
+        return delegatedUserEmail;
+    }
+
+    @Config("gsheets.delegated-user-email")
+    @LegacyConfig("delegated-user-email")
+    @ConfigDescription("Delegated user email to impersonate the service account")
+    public SheetsConfig setDelegatedUserEmail(String delegatedUserEmail)
+    {
+        this.delegatedUserEmail = Optional.ofNullable(delegatedUserEmail);
         return this;
     }
 

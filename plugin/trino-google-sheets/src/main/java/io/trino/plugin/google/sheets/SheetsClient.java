@@ -80,6 +80,7 @@ public class SheetsClient
     private final LoadingCache<String, List<List<Object>>> sheetDataCache;
 
     private final Optional<String> metadataSheetId;
+    private final Optional<String> delegatedUserEmail;
 
     private final Sheets sheetsService;
 
@@ -87,6 +88,7 @@ public class SheetsClient
     public SheetsClient(SheetsConfig config)
     {
         this.metadataSheetId = config.getMetadataSheetId();
+        this.delegatedUserEmail = config.getDelegatedUserEmail();
 
         try {
             this.sheetsService = new Sheets.Builder(newTrustedTransport(), JSON_FACTORY, setTimeout(getCredentials(config), config)).setApplicationName(APPLICATION_NAME).build();
@@ -270,7 +272,7 @@ public class SheetsClient
     {
         if (sheetsConfig.getCredentialsFilePath().isPresent()) {
             try (InputStream in = new FileInputStream(sheetsConfig.getCredentialsFilePath().get())) {
-                return credentialFromStream(in);
+                return credentialFromStream(in, sheetsConfig);
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -280,7 +282,7 @@ public class SheetsClient
         if (sheetsConfig.getCredentialsKey().isPresent()) {
             try {
                 return credentialFromStream(
-                                new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())));
+                        new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())), sheetsConfig);
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -290,9 +292,12 @@ public class SheetsClient
         throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, "No sheets credentials were provided");
     }
 
-    private static Credential credentialFromStream(InputStream inputStream)
+    private static Credential credentialFromStream(InputStream inputStream, SheetsConfig sheetsConfig)
             throws IOException
     {
+        if (sheetsConfig.getDelegatedUserEmail().isPresent()) {
+            return GoogleCredential.fromStream(inputStream).createScoped(SCOPES).createDelegated(sheetsConfig.getDelegatedUserEmail().get());
+        }
         return GoogleCredential.fromStream(inputStream).createScoped(SCOPES);
     }
 
