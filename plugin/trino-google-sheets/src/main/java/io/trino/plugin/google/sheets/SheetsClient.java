@@ -268,11 +268,11 @@ public class SheetsClient
         return tableSheetMap.buildOrThrow();
     }
 
-    private static Credential getCredentials(SheetsConfig sheetsConfig)
+    private Credential getCredentials(SheetsConfig sheetsConfig)
     {
         if (sheetsConfig.getCredentialsFilePath().isPresent()) {
             try (InputStream in = new FileInputStream(sheetsConfig.getCredentialsFilePath().get())) {
-                return credentialFromStream(in, sheetsConfig);
+                return credentialFromStream(in, delegatedUserEmail);
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -282,7 +282,7 @@ public class SheetsClient
         if (sheetsConfig.getCredentialsKey().isPresent()) {
             try {
                 return credentialFromStream(
-                        new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())), sheetsConfig);
+                        new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())), delegatedUserEmail);
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -292,11 +292,11 @@ public class SheetsClient
         throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, "No sheets credentials were provided");
     }
 
-    private static Credential credentialFromStream(InputStream inputStream, SheetsConfig sheetsConfig)
+    private Credential credentialFromStream(InputStream inputStream, Optional<String> delegatedUserEmail)
             throws IOException
     {
-        if (sheetsConfig.getDelegatedUserEmail().isPresent()) {
-            return GoogleCredential.fromStream(inputStream).createScoped(SCOPES).createDelegated(sheetsConfig.getDelegatedUserEmail().get());
+        if (delegatedUserEmail.isPresent()) {
+            return GoogleCredential.fromStream(inputStream).createScoped(SCOPES).createDelegated(delegatedUserEmail.get());
         }
         return GoogleCredential.fromStream(inputStream).createScoped(SCOPES);
     }

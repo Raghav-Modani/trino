@@ -99,7 +99,6 @@ public class SheetsConfig
     }
 
     @Config("gsheets.delegated-user-email")
-    @LegacyConfig("delegated-user-email")
     @ConfigDescription("Delegated user email to impersonate the service account")
     public SheetsConfig setDelegatedUserEmail(String delegatedUserEmail)
     {
