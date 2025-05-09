@@ -52,7 +52,8 @@ The exact name of the file does not matter -- it can be named anything.
 Alternatively, set the `gsheets.credentials-key` configuration property.
 It should contain the contents of the JSON file, encoded using base64.
 
-Optionally, set the `gsheets.delegated-user-email` property to impersonate a user. This allows you to share Google Sheets with this email instead of the service account.
+Optionally, set the `gsheets.delegated-user-email` property to impersonate a user.
+This allows you to share Google Sheets with this email instead of the service account.
 
 ## Metadata sheet
 

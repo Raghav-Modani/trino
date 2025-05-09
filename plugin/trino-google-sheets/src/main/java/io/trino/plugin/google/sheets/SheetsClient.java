@@ -80,7 +80,6 @@ public class SheetsClient
     private final LoadingCache<String, List<List<Object>>> sheetDataCache;
 
     private final Optional<String> metadataSheetId;
-    private final Optional<String> delegatedUserEmail;
 
     private final Sheets sheetsService;
 
@@ -88,7 +87,6 @@ public class SheetsClient
     public SheetsClient(SheetsConfig config)
     {
         this.metadataSheetId = config.getMetadataSheetId();
-        this.delegatedUserEmail = config.getDelegatedUserEmail();
 
         try {
             this.sheetsService = new Sheets.Builder(newTrustedTransport(), JSON_FACTORY, setTimeout(getCredentials(config), config)).setApplicationName(APPLICATION_NAME).build();
@@ -268,11 +266,11 @@ public class SheetsClient
         return tableSheetMap.buildOrThrow();
     }
 
-    private Credential getCredentials(SheetsConfig sheetsConfig)
+    private static Credential getCredentials(SheetsConfig sheetsConfig)
     {
         if (sheetsConfig.getCredentialsFilePath().isPresent()) {
             try (InputStream in = new FileInputStream(sheetsConfig.getCredentialsFilePath().get())) {
-                return credentialFromStream(in, delegatedUserEmail);
+                return credentialFromStream(in, sheetsConfig.getDelegatedUserEmail());
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -282,7 +280,7 @@ public class SheetsClient
         if (sheetsConfig.getCredentialsKey().isPresent()) {
             try {
                 return credentialFromStream(
-                        new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())), delegatedUserEmail);
+                        new ByteArrayInputStream(Base64.getDecoder().decode(sheetsConfig.getCredentialsKey().get())), sheetsConfig.getDelegatedUserEmail());
             }
             catch (IOException e) {
                 throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, e);
@@ -292,13 +290,12 @@ public class SheetsClient
         throw new TrinoException(SHEETS_BAD_CREDENTIALS_ERROR, "No sheets credentials were provided");
     }
 
-    private Credential credentialFromStream(InputStream inputStream, Optional<String> delegatedUserEmail)
+    private static Credential credentialFromStream(InputStream inputStream, Optional<String> delegatedUserEmail)
             throws IOException
     {
-        if (delegatedUserEmail.isPresent()) {
-            return GoogleCredential.fromStream(inputStream).createScoped(SCOPES).createDelegated(delegatedUserEmail.get());
-        }
-        return GoogleCredential.fromStream(inputStream).createScoped(SCOPES);
+        GoogleCredential credential = GoogleCredential.fromStream(inputStream).createScoped(SCOPES);
+        delegatedUserEmail.ifPresent(credential::createDelegated);
+        return credential;
     }
 
     private List<List<Object>> readAllValuesFromSheetExpression(String sheetExpression)
